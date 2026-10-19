@@ -1,0 +1,10 @@
+environment            = "staging"
+domain_certificate_arn = "arn:aws:acm:ap-south-1:000000000000:certificate/REPLACE_ME"
+image_tag              = "REPLACE_WITH_GIT_SHA"
+api_desired_count      = 2
+api_max_count          = 6
+worker_desired_count   = 1
+db_instance_class      = "db.t4g.large"
+db_read_replicas       = 0
+redis_node_type        = "cache.t4g.small"
+backup_retention_days  = 7

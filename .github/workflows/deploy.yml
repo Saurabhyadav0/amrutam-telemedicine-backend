@@ -1,0 +1,99 @@
+name: Deploy
+
+# Staging deploys automatically after CI passes on main; production is the same image,
+# promoted by hand behind a GitHub environment with required reviewers.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options: [staging, production]
+        default: staging
+      image_tag:
+        description: Git SHA of an image that already passed CI (defaults to this commit)
+        required: false
+
+permissions:
+  id-token: write # OIDC: short-lived AWS credentials, no stored access keys
+  contents: read
+
+concurrency:
+  group: deploy-${{ inputs.environment || 'staging' }}
+  cancel-in-progress: false # never interrupt a deploy halfway
+
+jobs:
+  deploy:
+    # Inert until an AWS deploy role is configured (repo variable AWS_DEPLOY_ROLE_ARN).
+    if: >-
+      vars.AWS_DEPLOY_ROLE_ARN != '' &&
+      (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment || 'staging' }}
+    env:
+      AWS_REGION: ap-south-1
+      ENV_NAME: ${{ inputs.environment || 'staging' }}
+      IMAGE_TAG: ${{ inputs.image_tag || github.event.workflow_run.head_sha || github.sha }}
+      CLUSTER: amrutam-${{ inputs.environment || 'staging' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.IMAGE_TAG }}
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push image (tag = git SHA, immutable)
+        env:
+          REPO: ${{ steps.ecr.outputs.registry }}/amrutam-api
+        run: |
+          if aws ecr describe-images --repository-name amrutam-api --image-ids imageTag="$IMAGE_TAG" >/dev/null 2>&1; then
+            echo "Image $IMAGE_TAG already in ECR (promotion), skipping build"
+          else
+            docker buildx build --platform linux/arm64 -t "$REPO:$IMAGE_TAG" --push .
+          fi
+
+      - uses: hashicorp/setup-terraform@v3
+        with: { terraform_version: 1.9.8 }
+
+      - name: Terraform apply (new task definitions pointing at the image)
+        working-directory: infra/terraform
+        run: |
+          terraform init -input=false -backend-config=envs/$ENV_NAME.backend.hcl
+          terraform apply -input=false -auto-approve \
+            -var-file=envs/$ENV_NAME.tfvars -var image_tag=$IMAGE_TAG \
+            -target=aws_ecs_task_definition.app
+          echo "MIGRATE_TASK=$(terraform output -raw migrate_task_definition)" >> "$GITHUB_ENV"
+
+      - name: Run database migrations (one-off task, must succeed before rollout)
+        run: |
+          NETWORK=$(aws ecs describe-services --cluster $CLUSTER --services api \
+            --query 'services[0].networkConfiguration' --output json)
+          TASK=$(aws ecs run-task --cluster $CLUSTER --launch-type FARGATE \
+            --task-definition "$MIGRATE_TASK" --network-configuration "$NETWORK" \
+            --query 'tasks[0].taskArn' --output text)
+          aws ecs wait tasks-stopped --cluster $CLUSTER --tasks "$TASK"
+          CODE=$(aws ecs describe-tasks --cluster $CLUSTER --tasks "$TASK" \
+            --query 'tasks[0].containers[0].exitCode' --output text)
+          test "$CODE" = "0" || { echo "Migration failed (exit $CODE)"; exit 1; }
+
+      - name: Roll out API and worker (circuit breaker rolls back on failed health checks)
+        working-directory: infra/terraform
+        run: |
+          terraform apply -input=false -auto-approve \
+            -var-file=envs/$ENV_NAME.tfvars -var image_tag=$IMAGE_TAG
+          aws ecs wait services-stable --cluster $CLUSTER --services api worker
+
+      - name: Smoke test
+        run: |
+          URL=$(cd infra/terraform && terraform output -raw alb_dns_name)
+          curl --fail --retry 5 --retry-delay 5 "https://$URL/health/ready"
