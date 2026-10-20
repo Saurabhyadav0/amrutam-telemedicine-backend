@@ -1,0 +1,3558 @@
+openapi: 3.1.0
+info:
+  title: Amrutam Telemedicine API
+  description: Auth, doctor availability, booking, consultations, prescriptions and
+    audit.
+  version: 0.1.0
+paths:
+  /v1/auth/register:
+    post:
+      tags:
+      - auth
+      summary: Register
+      operationId: register_v1_auth_register_post
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Client-generated unique key (e.g. UUIDv4). Retries must reuse
+            it.
+          title: Idempotency-Key
+        description: Client-generated unique key (e.g. UUIDv4). Retries must reuse
+          it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/auth/login:
+    post:
+      tags:
+      - auth
+      summary: Login
+      operationId: login_v1_auth_login_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/auth/mfa/verify:
+    post:
+      tags:
+      - auth
+      summary: Verify Mfa
+      operationId: verify_mfa_v1_auth_mfa_verify_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MfaVerifyRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/auth/mfa/setup:
+    post:
+      tags:
+      - auth
+      summary: Setup Mfa
+      operationId: setup_mfa_v1_auth_mfa_setup_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MfaSetupResponse'
+      security:
+      - HTTPBearer: []
+  /v1/auth/mfa/enable:
+    post:
+      tags:
+      - auth
+      summary: Enable Mfa
+      operationId: enable_mfa_v1_auth_mfa_enable_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MfaCodeRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MfaEnableResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /v1/auth/refresh:
+    post:
+      tags:
+      - auth
+      summary: Refresh
+      operationId: refresh_v1_auth_refresh_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/auth/logout:
+    post:
+      tags:
+      - auth
+      summary: Logout
+      operationId: logout_v1_auth_logout_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+        required: true
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/users/me:
+    get:
+      tags:
+      - users
+      summary: Get Me
+      operationId: get_me_v1_users_me_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeOut'
+      security:
+      - HTTPBearer: []
+  /v1/users/me/profile:
+    patch:
+      tags:
+      - users
+      summary: Update My Profile
+      operationId: update_my_profile_v1_users_me_profile_patch
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileUpdate'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /v1/users/me/data-export:
+    get:
+      tags:
+      - privacy (DPDP)
+      summary: Export My Data
+      description: 'Right of access: everything held about the caller, decrypted,
+        in one JSON document.'
+      operationId: export_my_data_v1_users_me_data_export_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Export My Data V1 Users Me Data Export Get
+      security:
+      - HTTPBearer: []
+  /v1/users/me/erasure:
+    post:
+      tags:
+      - privacy (DPDP)
+      summary: Erase My Account
+      description: 'Right to erasure. Identity/contact data is removed and the account
+        closed; clinical
+
+        records are retained as medical-records rules require. Requires the password
+        again.'
+      operationId: erase_my_account_v1_users_me_erasure_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErasureIn'
+        required: true
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /v1/doctors/me:
+    get:
+      tags:
+      - doctor self-service
+      summary: Get My Practice
+      operationId: get_my_practice_v1_doctors_me_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorOwnOut'
+      security:
+      - HTTPBearer: []
+    put:
+      tags:
+      - doctor self-service
+      summary: Submit My Practice
+      description: 'Create or replace the practice profile. Changing registration
+        details on a verified
+
+        profile sends it back to ``pending`` for re-verification.'
+      operationId: submit_my_practice_v1_doctors_me_put
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DoctorProfileIn'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorOwnOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /v1/doctors/me/accepting:
+    patch:
+      tags:
+      - doctor self-service
+      summary: Toggle Accepting
+      operationId: toggle_accepting_v1_doctors_me_accepting_patch
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcceptingUpdate'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorOwnOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /v1/doctors/me/slots:
+    post:
+      tags:
+      - doctor self-service
+      summary: Publish Slots
+      operationId: publish_slots_v1_doctors_me_slots_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Client-generated unique key (e.g. UUIDv4). Retries must reuse
+            it.
+          title: Idempotency-Key
+        description: Client-generated unique key (e.g. UUIDv4). Retries must reuse
+          it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SlotBatchIn'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SlotBatchOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - doctor self-service
+      summary: List My Slots
+      operationId: list_my_slots_v1_doctors_me_slots_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: From
+      - name: to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: To
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/SlotStatus'
+          - type: 'null'
+          title: Status
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SlotOut'
+                title: Response List My Slots V1 Doctors Me Slots Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/doctors/me/slots/{slot_id}:
+    delete:
+      tags:
+      - doctor self-service
+      summary: Remove Slot
+      operationId: remove_slot_v1_doctors_me_slots__slot_id__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: slot_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Slot Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/doctors:
+    get:
+      tags:
+      - doctor discovery
+      summary: Search Doctors
+      description: Search verified doctors who are accepting consultations. Cached
+        for up to 30s.
+      operationId: search_doctors_v1_doctors_get
+      parameters:
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 100
+          - type: 'null'
+          description: Name, specialty or keyword
+          title: Q
+        description: Name, specialty or keyword
+      - name: specialty
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Specialty
+      - name: language
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Language
+      - name: min_fee
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            minimum: 0
+          - type: 'null'
+          title: Min Fee
+      - name: max_fee
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            minimum: 0
+          - type: 'null'
+          title: Max Fee
+      - name: min_rating
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: number
+            maximum: 5
+            minimum: 0
+          - type: 'null'
+          title: Min Rating
+      - name: available_from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Available From
+      - name: available_to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Available To
+      - name: sort
+        in: query
+        required: false
+        schema:
+          $ref: '#/components/schemas/DoctorSort'
+          default: relevance
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 50
+          minimum: 1
+          default: 20
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 1000
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorSearchPage'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/doctors/specialties:
+    get:
+      tags:
+      - doctor discovery
+      summary: List Specialties
+      operationId: list_specialties_v1_doctors_specialties_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  type: string
+                type: array
+                title: Response List Specialties V1 Doctors Specialties Get
+  /v1/doctors/{doctor_id}:
+    get:
+      tags:
+      - doctor discovery
+      summary: Get Doctor
+      operationId: get_doctor_v1_doctors__doctor_id__get
+      parameters:
+      - name: doctor_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Doctor Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorPublic'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/doctors/{doctor_id}/slots:
+    get:
+      tags:
+      - doctor discovery
+      summary: List Doctor Slots
+      description: 'Open slots only. Not cached: this is what the patient picks from
+        right before booking.'
+      operationId: list_doctor_slots_v1_doctors__doctor_id__slots_get
+      parameters:
+      - name: doctor_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Doctor Id
+      - name: from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: From
+      - name: to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: To
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PublicSlotOut'
+                title: Response List Doctor Slots V1 Doctors  Doctor Id  Slots Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/consultations:
+    post:
+      tags:
+      - consultations
+      summary: Book Consultation
+      description: 'Hold the slot and start payment. The slot is held for 10 minutes;
+        the consultation is
+
+        confirmed by the payment webhook. Retrying (same key or same slot) resumes
+        the booking.'
+      operationId: book_consultation_v1_consultations_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Client-generated unique key (e.g. UUIDv4). Retries must reuse
+            it.
+          title: Idempotency-Key
+        description: Client-generated unique key (e.g. UUIDv4). Retries must reuse
+          it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingIn'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - consultations
+      summary: List My Consultations
+      operationId: list_my_consultations_v1_consultations_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/ConsultationStatus'
+          - type: 'null'
+          title: Status
+      - name: before
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Before
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsultationPage'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/consultations/{consultation_id}:
+    get:
+      tags:
+      - consultations
+      summary: Get Consultation
+      operationId: get_consultation_v1_consultations__consultation_id__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: consultation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Consultation Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsultationOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/consultations/{consultation_id}/cancel:
+    post:
+      tags:
+      - consultations
+      summary: Cancel Consultation
+      description: 'Patients get a full refund up to 2h before the start; doctor/admin
+        cancellations are
+
+        always refunded. The slot reopens for other patients.'
+      operationId: cancel_consultation_v1_consultations__consultation_id__cancel_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: consultation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Consultation Id
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Client-generated unique key (e.g. UUIDv4). Retries must reuse
+            it.
+          title: Idempotency-Key
+        description: Client-generated unique key (e.g. UUIDv4). Retries must reuse
+          it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CancelOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/consultations/{consultation_id}/start:
+    post:
+      tags:
+      - consultations
+      summary: Start Consultation
+      operationId: start_consultation_v1_consultations__consultation_id__start_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: consultation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Consultation Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JoinInfo'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/consultations/{consultation_id}/join:
+    get:
+      tags:
+      - consultations
+      summary: Join Consultation
+      operationId: join_consultation_v1_consultations__consultation_id__join_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: consultation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Consultation Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JoinInfo'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/consultations/{consultation_id}/complete:
+    post:
+      tags:
+      - consultations
+      summary: Complete Consultation
+      operationId: complete_consultation_v1_consultations__consultation_id__complete_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: consultation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Consultation Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsultationOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/consultations/{consultation_id}/no-show:
+    post:
+      tags:
+      - consultations
+      summary: Mark No Show
+      operationId: mark_no_show_v1_consultations__consultation_id__no_show_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: consultation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Consultation Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsultationOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/consultations/{consultation_id}/review:
+    post:
+      tags:
+      - consultations
+      summary: Review Consultation
+      operationId: review_consultation_v1_consultations__consultation_id__review_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: consultation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Consultation Id
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Client-generated unique key (e.g. UUIDv4). Retries must reuse
+            it.
+          title: Idempotency-Key
+        description: Client-generated unique key (e.g. UUIDv4). Retries must reuse
+          it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsultationOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/medicines:
+    get:
+      tags:
+      - prescriptions
+      summary: Search Medicines
+      operationId: search_medicines_v1_medicines_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 60
+          - type: 'null'
+          title: Q
+      - name: tpg_list
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/MedicineList'
+          - type: 'null'
+          title: Tpg List
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MedicineOut'
+                title: Response Search Medicines V1 Medicines Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/consultations/{consultation_id}/prescription:
+    post:
+      tags:
+      - prescriptions
+      summary: Issue Prescription
+      description: 'Enforces TPG 2020 medicine lists: List B never; List A first time
+        only over video.'
+      operationId: issue_prescription_v1_consultations__consultation_id__prescription_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: consultation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Consultation Id
+      - name: Idempotency-Key
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Client-generated unique key (e.g. UUIDv4). Retries must reuse
+            it.
+          title: Idempotency-Key
+        description: Client-generated unique key (e.g. UUIDv4). Retries must reuse
+          it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrescriptionIn'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrescriptionOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - prescriptions
+      summary: Get Prescription
+      operationId: get_prescription_v1_consultations__consultation_id__prescription_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: consultation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Consultation Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrescriptionOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/prescriptions/signing-key:
+    get:
+      tags:
+      - prescriptions
+      summary: Prescription Signing Key
+      description: Public key for verifying prescription signatures (e.g. by pharmacies).
+      operationId: prescription_signing_key_v1_prescriptions_signing_key_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SigningKeyOut'
+  /v1/payments/webhooks/mockpay:
+    post:
+      tags:
+      - payments
+      summary: Mockpay Webhook
+      description: 'Gateway → us. HMAC-signed and timestamped; duplicate deliveries
+        are acknowledged and
+
+        ignored. Always 200 after a valid signature so the gateway stops retrying.'
+      operationId: mockpay_webhook_v1_payments_webhooks_mockpay_post
+      parameters:
+      - name: X-MockPay-Signature
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Mockpay-Signature
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+                title: Response Mockpay Webhook V1 Payments Webhooks Mockpay Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/payments/mock/{payment_id}/complete:
+    post:
+      tags:
+      - payments (dev only)
+      summary: Mock Complete Payment
+      description: 'Simulates the patient paying on MockPay''s checkout page, which
+        makes MockPay send us a
+
+        signed webhook. Not mounted in production.'
+      operationId: mock_complete_payment_v1_payments_mock__payment_id__complete_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: payment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Payment Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MockCompleteIn'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+                title: Response Mock Complete Payment V1 Payments Mock  Payment Id  Complete
+                  Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/admin/users:
+    get:
+      tags:
+      - admin
+      summary: List Users
+      operationId: list_users_v1_admin_users_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: role
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/UserRole'
+          - type: 'null'
+          title: Role
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          description: next_cursor from previous page
+          title: Cursor
+        description: next_cursor from previous page
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPage'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/admin/users/{user_id}/role:
+    patch:
+      tags:
+      - admin
+      summary: Change Role
+      operationId: change_role_v1_admin_users__user_id__role_patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: User Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/admin/audit-logs:
+    get:
+      tags:
+      - admin
+      summary: List Audit Logs
+      operationId: list_audit_logs_v1_admin_audit_logs_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: actor_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Actor Id
+      - name: action
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 64
+          - type: 'null'
+          title: Action
+      - name: resource_type
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 64
+          - type: 'null'
+          title: Resource Type
+      - name: resource_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 64
+          - type: 'null'
+          title: Resource Id
+      - name: since
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Since
+      - name: until
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Until
+      - name: before_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            minimum: 1
+          - type: 'null'
+          title: Before Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditLogOut'
+                title: Response List Audit Logs V1 Admin Audit Logs Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/admin/audit-logs/verify:
+    get:
+      tags:
+      - admin
+      summary: Verify Audit Chain
+      operationId: verify_audit_chain_v1_admin_audit_logs_verify_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditChainOut'
+      security:
+      - HTTPBearer: []
+  /v1/admin/outbox:
+    get:
+      tags:
+      - admin
+      summary: List Outbox
+      description: 'The dead-letter queue (status=dead): events whose handlers kept
+        failing.'
+      operationId: list_outbox_v1_admin_outbox_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          $ref: '#/components/schemas/OutboxStatus'
+          default: dead
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OutboxEventOut'
+                title: Response List Outbox V1 Admin Outbox Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/admin/outbox/{event_id}/retry:
+    post:
+      tags:
+      - admin
+      summary: Retry Outbox Event
+      operationId: retry_outbox_event_v1_admin_outbox__event_id__retry_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: event_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Event Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutboxEventOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/admin/doctors:
+    get:
+      tags:
+      - admin
+      summary: List Doctors For Review
+      operationId: list_doctors_for_review_v1_admin_doctors_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/VerificationStatus'
+          - type: 'null'
+          title: Status
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorAdminPage'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/admin/doctors/{doctor_id}/verification:
+    post:
+      tags:
+      - admin
+      summary: Decide Verification
+      description: 'Approve after checking the registration against the NCISM / State
+        Board register,
+
+        or reject (also used to suspend) with a reason. Fully audited.'
+      operationId: decide_verification_v1_admin_doctors__doctor_id__verification_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: doctor_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Doctor Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerificationDecision'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoctorOwnOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/admin/analytics/overview:
+    get:
+      tags:
+      - admin analytics
+      summary: Overview
+      operationId: overview_v1_admin_analytics_overview_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: From
+      - name: to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: To
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Overview'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/admin/analytics/daily:
+    get:
+      tags:
+      - admin analytics
+      summary: Daily
+      operationId: daily_v1_admin_analytics_daily_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: From
+      - name: to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: To
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DailyRow'
+                title: Response Daily V1 Admin Analytics Daily Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/admin/analytics/doctors:
+    get:
+      tags:
+      - admin analytics
+      summary: Doctors
+      operationId: doctors_v1_admin_analytics_doctors_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: sort
+        in: query
+        required: false
+        schema:
+          enum:
+          - revenue
+          - completed
+          - utilization
+          type: string
+          default: revenue
+          title: Sort
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 20
+          title: Limit
+      - name: from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: From
+      - name: to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: To
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DoctorPerformance'
+                title: Response Doctors V1 Admin Analytics Doctors Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/admin/analytics/specialties:
+    get:
+      tags:
+      - admin analytics
+      summary: Specialties
+      operationId: specialties_v1_admin_analytics_specialties_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: From
+      - name: to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: To
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SpecialtyDemand'
+                title: Response Specialties V1 Admin Analytics Specialties Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/admin/analytics/refresh:
+    post:
+      tags:
+      - admin analytics
+      summary: Request Refresh
+      description: Backfill/recompute a range. Heavy, so it runs on the worker via
+        the outbox.
+      operationId: request_refresh_v1_admin_analytics_refresh_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshIn'
+        required: true
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshAccepted'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /health/live:
+    get:
+      tags:
+      - health
+      summary: Live
+      description: 'Liveness: the process is up. Never checks dependencies (avoids
+        restart storms).'
+      operationId: live_health_live_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
+                title: Response Live Health Live Get
+  /health/ready:
+    get:
+      tags:
+      - health
+      summary: Ready
+      description: 'Readiness: dependencies reachable, so the load balancer may route
+        traffic here.'
+      operationId: ready_health_ready_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+components:
+  schemas:
+    AcceptingUpdate:
+      properties:
+        is_accepting:
+          type: boolean
+          title: Is Accepting
+      additionalProperties: false
+      type: object
+      required:
+      - is_accepting
+      title: AcceptingUpdate
+    AuditChainOut:
+      properties:
+        checked:
+          type: integer
+          title: Checked
+        valid:
+          type: boolean
+          title: Valid
+        first_invalid_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: First Invalid Id
+      type: object
+      required:
+      - checked
+      - valid
+      - first_invalid_id
+      title: AuditChainOut
+    AuditLogOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        occurred_at:
+          type: string
+          format: date-time
+          title: Occurred At
+        actor_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Actor Id
+        actor_role:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Actor Role
+        action:
+          type: string
+          title: Action
+        resource_type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Resource Type
+        resource_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Resource Id
+        ip:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Ip
+        request_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Request Id
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+        hash:
+          type: string
+          title: Hash
+      type: object
+      required:
+      - id
+      - occurred_at
+      - actor_id
+      - actor_role
+      - action
+      - resource_type
+      - resource_id
+      - ip
+      - request_id
+      - metadata
+      - hash
+      title: AuditLogOut
+    BookingIn:
+      properties:
+        slot_id:
+          type: string
+          format: uuid
+          title: Slot Id
+        chief_complaint:
+          anyOf:
+          - type: string
+            maxLength: 1000
+          - type: 'null'
+          title: Chief Complaint
+        consent_to_teleconsultation:
+          type: boolean
+          const: true
+          title: Consent To Teleconsultation
+          description: Explicit patient consent required by TPG 2020 before a teleconsultation
+      additionalProperties: false
+      type: object
+      required:
+      - slot_id
+      - consent_to_teleconsultation
+      title: BookingIn
+    BookingOut:
+      properties:
+        consultation:
+          $ref: '#/components/schemas/ConsultationOut'
+        payment:
+          anyOf:
+          - $ref: '#/components/schemas/PaymentOut'
+          - type: 'null'
+        checkout_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Checkout Url
+        hold_expires_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Hold Expires At
+      type: object
+      required:
+      - consultation
+      - payment
+      - checkout_url
+      - hold_expires_at
+      title: BookingOut
+    CancelIn:
+      properties:
+        reason:
+          type: string
+          maxLength: 64
+          minLength: 3
+          title: Reason
+      additionalProperties: false
+      type: object
+      required:
+      - reason
+      title: CancelIn
+    CancelOut:
+      properties:
+        consultation:
+          $ref: '#/components/schemas/ConsultationOut'
+        refund_paise:
+          type: integer
+          title: Refund Paise
+      type: object
+      required:
+      - consultation
+      - refund_paise
+      title: CancelOut
+    CompleteIn:
+      properties:
+        notes:
+          anyOf:
+          - type: string
+            maxLength: 5000
+          - type: 'null'
+          title: Notes
+      additionalProperties: false
+      type: object
+      title: CompleteIn
+    ConsultationMode:
+      type: string
+      enum:
+      - video
+      - audio
+      - chat
+      title: ConsultationMode
+    ConsultationOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        patient_id:
+          type: string
+          format: uuid
+          title: Patient Id
+        doctor_id:
+          type: string
+          format: uuid
+          title: Doctor Id
+        doctor_name:
+          type: string
+          title: Doctor Name
+        slot_id:
+          type: string
+          format: uuid
+          title: Slot Id
+        mode:
+          $ref: '#/components/schemas/ConsultationMode'
+        status:
+          $ref: '#/components/schemas/ConsultationStatus'
+        scheduled_start:
+          type: string
+          format: date-time
+          title: Scheduled Start
+        scheduled_end:
+          type: string
+          format: date-time
+          title: Scheduled End
+        fee_paise:
+          type: integer
+          title: Fee Paise
+        chief_complaint:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Chief Complaint
+        cancel_reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cancel Reason
+        rating:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Rating
+        version:
+          type: integer
+          title: Version
+      type: object
+      required:
+      - id
+      - patient_id
+      - doctor_id
+      - doctor_name
+      - slot_id
+      - mode
+      - status
+      - scheduled_start
+      - scheduled_end
+      - fee_paise
+      - chief_complaint
+      - cancel_reason
+      - rating
+      - version
+      title: ConsultationOut
+    ConsultationPage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/ConsultationOut'
+          type: array
+          title: Items
+        next_cursor:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Next Cursor
+      type: object
+      required:
+      - items
+      - next_cursor
+      title: ConsultationPage
+    ConsultationStatus:
+      type: string
+      enum:
+      - pending_payment
+      - confirmed
+      - in_progress
+      - completed
+      - cancelled
+      - no_show
+      title: ConsultationStatus
+    DailyRow:
+      properties:
+        day:
+          type: string
+          format: date
+          title: Day
+        consultations_booked:
+          type: integer
+          title: Consultations Booked
+        consultations_completed:
+          type: integer
+          title: Consultations Completed
+        consultations_cancelled:
+          type: integer
+          title: Consultations Cancelled
+        net_revenue_paise:
+          type: integer
+          title: Net Revenue Paise
+        new_patients:
+          type: integer
+          title: New Patients
+      type: object
+      required:
+      - day
+      - consultations_booked
+      - consultations_completed
+      - consultations_cancelled
+      - net_revenue_paise
+      - new_patients
+      title: DailyRow
+    DoctorAdminPage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/DoctorOwnOut'
+          type: array
+          title: Items
+        next_offset:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Next Offset
+      type: object
+      required:
+      - items
+      - next_offset
+      title: DoctorAdminPage
+    DoctorCard:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        display_name:
+          type: string
+          title: Display Name
+        qualification:
+          type: string
+          title: Qualification
+        registration_number:
+          type: string
+          title: Registration Number
+        registration_council:
+          type: string
+          title: Registration Council
+        years_experience:
+          type: integer
+          title: Years Experience
+        specialties:
+          items:
+            type: string
+          type: array
+          title: Specialties
+        languages:
+          items:
+            type: string
+          type: array
+          title: Languages
+        fee_paise:
+          type: integer
+          title: Fee Paise
+        rating_avg:
+          type: number
+          title: Rating Avg
+        rating_count:
+          type: integer
+          title: Rating Count
+        next_available_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Next Available At
+      type: object
+      required:
+      - id
+      - display_name
+      - qualification
+      - registration_number
+      - registration_council
+      - years_experience
+      - specialties
+      - languages
+      - fee_paise
+      - rating_avg
+      - rating_count
+      - next_available_at
+      title: DoctorCard
+      description: Search result. Shows what TPG 2020 requires patients to see before
+        consulting.
+    DoctorOwnOut:
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          title: User Id
+        display_name:
+          type: string
+          title: Display Name
+        registration_number:
+          type: string
+          title: Registration Number
+        registration_council:
+          type: string
+          title: Registration Council
+        qualification:
+          type: string
+          title: Qualification
+        years_experience:
+          type: integer
+          title: Years Experience
+        specialties:
+          items:
+            type: string
+          type: array
+          title: Specialties
+        languages:
+          items:
+            type: string
+          type: array
+          title: Languages
+        fee_paise:
+          type: integer
+          title: Fee Paise
+        bio:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Bio
+        verification_status:
+          $ref: '#/components/schemas/VerificationStatus'
+        rejection_reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Rejection Reason
+        is_accepting:
+          type: boolean
+          title: Is Accepting
+        rating_avg:
+          type: number
+          title: Rating Avg
+        rating_count:
+          type: integer
+          title: Rating Count
+      type: object
+      required:
+      - user_id
+      - display_name
+      - registration_number
+      - registration_council
+      - qualification
+      - years_experience
+      - specialties
+      - languages
+      - fee_paise
+      - bio
+      - verification_status
+      - rejection_reason
+      - is_accepting
+      - rating_avg
+      - rating_count
+      title: DoctorOwnOut
+      description: The doctor's view of their own profile, including verification
+        state.
+    DoctorPerformance:
+      properties:
+        doctor_id:
+          type: string
+          format: uuid
+          title: Doctor Id
+        display_name:
+          type: string
+          title: Display Name
+        rating_avg:
+          type: number
+          title: Rating Avg
+        slots_published:
+          type: integer
+          title: Slots Published
+        slots_booked:
+          type: integer
+          title: Slots Booked
+        consultations_completed:
+          type: integer
+          title: Consultations Completed
+        consultations_cancelled:
+          type: integer
+          title: Consultations Cancelled
+        revenue_paise:
+          type: integer
+          title: Revenue Paise
+        utilization:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Utilization
+      type: object
+      required:
+      - doctor_id
+      - display_name
+      - rating_avg
+      - slots_published
+      - slots_booked
+      - consultations_completed
+      - consultations_cancelled
+      - revenue_paise
+      - utilization
+      title: DoctorPerformance
+    DoctorProfileIn:
+      properties:
+        registration_number:
+          type: string
+          title: Registration Number
+        registration_council:
+          type: string
+          maxLength: 64
+          minLength: 2
+          title: Registration Council
+          description: Issuing body, e.g. NCISM or a State Board of Ayurveda
+        qualification:
+          type: string
+          maxLength: 120
+          minLength: 2
+          title: Qualification
+        years_experience:
+          type: integer
+          maximum: 70.0
+          minimum: 0.0
+          title: Years Experience
+        specialties:
+          items:
+            type: string
+          type: array
+          maxItems: 8
+          minItems: 1
+          title: Specialties
+        languages:
+          items:
+            type: string
+          type: array
+          maxItems: 8
+          minItems: 1
+          title: Languages
+        fee_paise:
+          type: integer
+          maximum: 10000000.0
+          minimum: 0.0
+          title: Fee Paise
+          description: Consultation fee in paise (INR)
+        bio:
+          anyOf:
+          - type: string
+            maxLength: 2000
+          - type: 'null'
+          title: Bio
+      additionalProperties: false
+      type: object
+      required:
+      - registration_number
+      - registration_council
+      - qualification
+      - years_experience
+      - specialties
+      - languages
+      - fee_paise
+      title: DoctorProfileIn
+    DoctorPublic:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        display_name:
+          type: string
+          title: Display Name
+        qualification:
+          type: string
+          title: Qualification
+        registration_number:
+          type: string
+          title: Registration Number
+        registration_council:
+          type: string
+          title: Registration Council
+        years_experience:
+          type: integer
+          title: Years Experience
+        specialties:
+          items:
+            type: string
+          type: array
+          title: Specialties
+        languages:
+          items:
+            type: string
+          type: array
+          title: Languages
+        fee_paise:
+          type: integer
+          title: Fee Paise
+        rating_avg:
+          type: number
+          title: Rating Avg
+        rating_count:
+          type: integer
+          title: Rating Count
+        next_available_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Next Available At
+        bio:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Bio
+      type: object
+      required:
+      - id
+      - display_name
+      - qualification
+      - registration_number
+      - registration_council
+      - years_experience
+      - specialties
+      - languages
+      - fee_paise
+      - rating_avg
+      - rating_count
+      - next_available_at
+      - bio
+      title: DoctorPublic
+    DoctorSearchPage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/DoctorCard'
+          type: array
+          title: Items
+        next_offset:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Next Offset
+      type: object
+      required:
+      - items
+      - next_offset
+      title: DoctorSearchPage
+    DoctorSort:
+      type: string
+      enum:
+      - relevance
+      - rating
+      - fee_asc
+      - fee_desc
+      - experience
+      - next_available
+      title: DoctorSort
+    ErasureIn:
+      properties:
+        password:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Password
+        confirm:
+          type: string
+          const: ERASE MY ACCOUNT
+          title: Confirm
+      additionalProperties: false
+      type: object
+      required:
+      - password
+      - confirm
+      title: ErasureIn
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    JoinInfo:
+      properties:
+        consultation_id:
+          type: string
+          format: uuid
+          title: Consultation Id
+        room:
+          type: string
+          title: Room
+        token:
+          type: string
+          title: Token
+        mode:
+          $ref: '#/components/schemas/ConsultationMode'
+        expires_in:
+          type: integer
+          title: Expires In
+      type: object
+      required:
+      - consultation_id
+      - room
+      - token
+      - mode
+      - expires_in
+      title: JoinInfo
+      description: Video/audio/chat room credentials. The room token is short-lived
+        and per-user.
+    LoginRequest:
+      properties:
+        email:
+          type: string
+          format: email
+          title: Email
+        password:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Password
+      additionalProperties: false
+      type: object
+      required:
+      - email
+      - password
+      title: LoginRequest
+    LoginResponse:
+      properties:
+        mfa_required:
+          type: boolean
+          title: Mfa Required
+        mfa_token:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Mfa Token
+        tokens:
+          anyOf:
+          - $ref: '#/components/schemas/TokenResponse'
+          - type: 'null'
+        mfa_enrollment_required:
+          type: boolean
+          title: Mfa Enrollment Required
+          description: 'Privileged role without MFA: only MFA enrolment endpoints
+            are usable'
+          default: false
+      type: object
+      required:
+      - mfa_required
+      title: LoginResponse
+      description: Either tokens, or ``mfa_required`` with a short-lived ``mfa_token``
+        for /auth/mfa/verify.
+    MeOut:
+      properties:
+        user:
+          $ref: '#/components/schemas/UserOut'
+        profile:
+          anyOf:
+          - $ref: '#/components/schemas/ProfileOut'
+          - type: 'null'
+      type: object
+      required:
+      - user
+      - profile
+      title: MeOut
+    MedicineList:
+      type: string
+      enum:
+      - O
+      - A
+      - B
+      title: MedicineList
+      description: 'Telemedicine Practice Guidelines 2020, Annexure: what may be prescribed
+        remotely.'
+    MedicineOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        name:
+          type: string
+          title: Name
+        form:
+          type: string
+          title: Form
+        tpg_list:
+          $ref: '#/components/schemas/MedicineList'
+        amrutam_sku:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Amrutam Sku
+      type: object
+      required:
+      - id
+      - name
+      - form
+      - tpg_list
+      - amrutam_sku
+      title: MedicineOut
+    MfaCodeRequest:
+      properties:
+        code:
+          type: string
+          maxLength: 16
+          minLength: 6
+          title: Code
+      additionalProperties: false
+      type: object
+      required:
+      - code
+      title: MfaCodeRequest
+    MfaEnableResponse:
+      properties:
+        recovery_codes:
+          items:
+            type: string
+          type: array
+          title: Recovery Codes
+          description: Shown once. Store them somewhere safe.
+        tokens:
+          $ref: '#/components/schemas/TokenResponse'
+      type: object
+      required:
+      - recovery_codes
+      - tokens
+      title: MfaEnableResponse
+    MfaSetupResponse:
+      properties:
+        secret:
+          type: string
+          title: Secret
+        otpauth_uri:
+          type: string
+          title: Otpauth Uri
+      type: object
+      required:
+      - secret
+      - otpauth_uri
+      title: MfaSetupResponse
+    MfaVerifyRequest:
+      properties:
+        mfa_token:
+          type: string
+          title: Mfa Token
+        code:
+          type: string
+          maxLength: 16
+          minLength: 6
+          title: Code
+          description: 6-digit TOTP code or a recovery code
+      additionalProperties: false
+      type: object
+      required:
+      - mfa_token
+      - code
+      title: MfaVerifyRequest
+    MockCompleteIn:
+      properties:
+        outcome:
+          type: string
+          enum:
+          - succeeded
+          - failed
+          title: Outcome
+          default: succeeded
+      additionalProperties: false
+      type: object
+      title: MockCompleteIn
+    OutboxEventOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        topic:
+          type: string
+          title: Topic
+        aggregate_id:
+          type: string
+          title: Aggregate Id
+        status:
+          $ref: '#/components/schemas/OutboxStatus'
+        attempts:
+          type: integer
+          title: Attempts
+        last_error:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Last Error
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        next_attempt_at:
+          type: string
+          format: date-time
+          title: Next Attempt At
+      type: object
+      required:
+      - id
+      - topic
+      - aggregate_id
+      - status
+      - attempts
+      - last_error
+      - created_at
+      - next_attempt_at
+      title: OutboxEventOut
+    OutboxStatus:
+      type: string
+      enum:
+      - pending
+      - done
+      - dead
+      title: OutboxStatus
+    Overview:
+      properties:
+        from_day:
+          type: string
+          format: date
+          title: From Day
+        to_day:
+          type: string
+          format: date
+          title: To Day
+        consultations_booked:
+          type: integer
+          title: Consultations Booked
+        consultations_completed:
+          type: integer
+          title: Consultations Completed
+        consultations_cancelled:
+          type: integer
+          title: Consultations Cancelled
+        consultations_no_show:
+          type: integer
+          title: Consultations No Show
+        gross_revenue_paise:
+          type: integer
+          title: Gross Revenue Paise
+        refunds_paise:
+          type: integer
+          title: Refunds Paise
+        net_revenue_paise:
+          type: integer
+          title: Net Revenue Paise
+        new_patients:
+          type: integer
+          title: New Patients
+        new_doctors:
+          type: integer
+          title: New Doctors
+        cancellation_rate:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Cancellation Rate
+        no_show_rate:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: No Show Rate
+        completion_rate:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Completion Rate
+        average_rating:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Average Rating
+        as_of:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: As Of
+      type: object
+      required:
+      - from_day
+      - to_day
+      - consultations_booked
+      - consultations_completed
+      - consultations_cancelled
+      - consultations_no_show
+      - gross_revenue_paise
+      - refunds_paise
+      - net_revenue_paise
+      - new_patients
+      - new_doctors
+      - cancellation_rate
+      - no_show_rate
+      - completion_rate
+      - average_rating
+      - as_of
+      title: Overview
+    PaymentOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        amount_paise:
+          type: integer
+          title: Amount Paise
+        currency:
+          type: string
+          title: Currency
+        status:
+          $ref: '#/components/schemas/PaymentStatus'
+        provider:
+          type: string
+          title: Provider
+        provider_payment_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Provider Payment Id
+        refund_amount_paise:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Refund Amount Paise
+      type: object
+      required:
+      - id
+      - amount_paise
+      - currency
+      - status
+      - provider
+      - provider_payment_id
+      - refund_amount_paise
+      title: PaymentOut
+    PaymentStatus:
+      type: string
+      enum:
+      - created
+      - succeeded
+      - failed
+      - expired
+      - cancelled
+      - refund_pending
+      - refunded
+      title: PaymentStatus
+    PrescriptionIn:
+      properties:
+        diagnosis:
+          type: string
+          maxLength: 2000
+          minLength: 2
+          title: Diagnosis
+        advice:
+          anyOf:
+          - type: string
+            maxLength: 4000
+          - type: 'null'
+          title: Advice
+          description: Diet (pathya), lifestyle
+        items:
+          items:
+            $ref: '#/components/schemas/PrescriptionItemIn'
+          type: array
+          maxItems: 20
+          minItems: 1
+          title: Items
+      additionalProperties: false
+      type: object
+      required:
+      - diagnosis
+      - items
+      title: PrescriptionIn
+    PrescriptionItemIn:
+      properties:
+        medicine_id:
+          type: string
+          format: uuid
+          title: Medicine Id
+        dose:
+          type: string
+          maxLength: 64
+          minLength: 1
+          title: Dose
+          examples:
+          - 1 tsp (3 g)
+        frequency:
+          type: string
+          maxLength: 64
+          minLength: 1
+          title: Frequency
+          examples:
+          - twice daily after meals
+        duration_days:
+          type: integer
+          maximum: 180.0
+          minimum: 1.0
+          title: Duration Days
+        instructions:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Instructions
+      additionalProperties: false
+      type: object
+      required:
+      - medicine_id
+      - dose
+      - frequency
+      - duration_days
+      title: PrescriptionItemIn
+    PrescriptionOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        consultation_id:
+          type: string
+          format: uuid
+          title: Consultation Id
+        document:
+          additionalProperties: true
+          type: object
+          title: Document
+        content_sha256:
+          type: string
+          title: Content Sha256
+        signature:
+          type: string
+          title: Signature
+        signing_key_id:
+          type: string
+          title: Signing Key Id
+        product_recommendations:
+          items:
+            $ref: '#/components/schemas/MedicineOut'
+          type: array
+          title: Product Recommendations
+      type: object
+      required:
+      - id
+      - consultation_id
+      - document
+      - content_sha256
+      - signature
+      - signing_key_id
+      - product_recommendations
+      title: PrescriptionOut
+      description: The signed document plus its signature. ``document`` is exactly
+        what was signed.
+    ProfileOut:
+      properties:
+        full_name:
+          type: string
+          title: Full Name
+        phone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Phone
+        date_of_birth:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Date Of Birth
+        gender:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Gender
+        preferred_language:
+          type: string
+          title: Preferred Language
+        timezone:
+          type: string
+          title: Timezone
+      type: object
+      required:
+      - full_name
+      - phone
+      - date_of_birth
+      - gender
+      - preferred_language
+      - timezone
+      title: ProfileOut
+    ProfileUpdate:
+      properties:
+        full_name:
+          anyOf:
+          - type: string
+            maxLength: 120
+            minLength: 1
+          - type: 'null'
+          title: Full Name
+        phone:
+          anyOf:
+          - type: string
+            pattern: ^\+[1-9]\d{7,14}$
+          - type: 'null'
+          title: Phone
+        date_of_birth:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Date Of Birth
+        gender:
+          anyOf:
+          - type: string
+            enum:
+            - female
+            - male
+            - other
+            - undisclosed
+          - type: 'null'
+          title: Gender
+        preferred_language:
+          anyOf:
+          - type: string
+            pattern: ^[a-z]{2}(-[A-Z]{2})?$
+          - type: 'null'
+          title: Preferred Language
+        timezone:
+          anyOf:
+          - type: string
+            maxLength: 64
+          - type: 'null'
+          title: Timezone
+      additionalProperties: false
+      type: object
+      title: ProfileUpdate
+    PublicSlotOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        start_at:
+          type: string
+          format: date-time
+          title: Start At
+        end_at:
+          type: string
+          format: date-time
+          title: End At
+        mode:
+          $ref: '#/components/schemas/ConsultationMode'
+      type: object
+      required:
+      - id
+      - start_at
+      - end_at
+      - mode
+      title: PublicSlotOut
+    RecurrenceRule:
+      properties:
+        start_date:
+          type: string
+          format: date
+          title: Start Date
+        end_date:
+          type: string
+          format: date
+          title: End Date
+        weekdays:
+          items:
+            type: integer
+            maximum: 6.0
+            minimum: 0.0
+          type: array
+          maxItems: 7
+          minItems: 1
+          title: Weekdays
+          description: 0 = Monday ... 6 = Sunday
+        day_start:
+          type: string
+          format: time
+          title: Day Start
+        day_end:
+          type: string
+          format: time
+          title: Day End
+        slot_minutes:
+          type: integer
+          enum:
+          - 15
+          - 20
+          - 30
+          - 45
+          - 60
+          title: Slot Minutes
+        timezone:
+          type: string
+          title: Timezone
+          default: Asia/Kolkata
+      additionalProperties: false
+      type: object
+      required:
+      - start_date
+      - end_date
+      - weekdays
+      - day_start
+      - day_end
+      - slot_minutes
+      title: RecurrenceRule
+      description: Weekly pattern in the doctor's local time, e.g. Mon-Fri 10:00-13:00
+        in 30-min slots.
+    RefreshAccepted:
+      properties:
+        status:
+          type: string
+          title: Status
+          default: queued
+        from_day:
+          type: string
+          format: date
+          title: From Day
+        to_day:
+          type: string
+          format: date
+          title: To Day
+      type: object
+      required:
+      - from_day
+      - to_day
+      title: RefreshAccepted
+    RefreshIn:
+      properties:
+        from_day:
+          type: string
+          format: date
+          title: From Day
+        to_day:
+          type: string
+          format: date
+          title: To Day
+      additionalProperties: false
+      type: object
+      required:
+      - from_day
+      - to_day
+      title: RefreshIn
+    RefreshRequest:
+      properties:
+        refresh_token:
+          type: string
+          maxLength: 256
+          minLength: 16
+          title: Refresh Token
+      additionalProperties: false
+      type: object
+      required:
+      - refresh_token
+      title: RefreshRequest
+    RegisterRequest:
+      properties:
+        email:
+          type: string
+          format: email
+          title: Email
+        password:
+          type: string
+          maxLength: 128
+          minLength: 12
+          title: Password
+        full_name:
+          type: string
+          maxLength: 120
+          minLength: 1
+          title: Full Name
+        phone:
+          anyOf:
+          - type: string
+            pattern: ^\+[1-9]\d{7,14}$
+          - type: 'null'
+          title: Phone
+        role:
+          type: string
+          enum:
+          - patient
+          - doctor
+          title: Role
+          default: patient
+        accept_terms:
+          type: boolean
+          const: true
+          title: Accept Terms
+          description: Explicit consent to data processing (DPDP Act 2023); must be
+            true
+        consent_version:
+          type: string
+          maxLength: 32
+          minLength: 1
+          title: Consent Version
+          default: 2026-01
+      additionalProperties: false
+      type: object
+      required:
+      - email
+      - password
+      - full_name
+      - accept_terms
+      title: RegisterRequest
+    ReviewIn:
+      properties:
+        rating:
+          type: integer
+          maximum: 5.0
+          minimum: 1.0
+          title: Rating
+        review:
+          anyOf:
+          - type: string
+            maxLength: 1000
+          - type: 'null'
+          title: Review
+      additionalProperties: false
+      type: object
+      required:
+      - rating
+      title: ReviewIn
+    RoleUpdate:
+      properties:
+        role:
+          $ref: '#/components/schemas/UserRole'
+      additionalProperties: false
+      type: object
+      required:
+      - role
+      title: RoleUpdate
+    SigningKeyOut:
+      properties:
+        key_id:
+          type: string
+          title: Key Id
+        algorithm:
+          type: string
+          title: Algorithm
+          default: Ed25519
+        public_key:
+          type: string
+          title: Public Key
+      type: object
+      required:
+      - key_id
+      - public_key
+      title: SigningKeyOut
+    SlotBatchIn:
+      properties:
+        mode:
+          $ref: '#/components/schemas/ConsultationMode'
+          default: video
+        rule:
+          anyOf:
+          - $ref: '#/components/schemas/RecurrenceRule'
+          - type: 'null'
+        slots:
+          anyOf:
+          - items:
+              $ref: '#/components/schemas/SlotIn'
+            type: array
+            maxItems: 500
+          - type: 'null'
+          title: Slots
+      additionalProperties: false
+      type: object
+      title: SlotBatchIn
+      description: Exactly one of ``rule`` or ``slots``.
+    SlotBatchOut:
+      properties:
+        created:
+          type: integer
+          title: Created
+        skipped_overlapping:
+          type: integer
+          title: Skipped Overlapping
+        slots:
+          items:
+            $ref: '#/components/schemas/SlotOut'
+          type: array
+          title: Slots
+      type: object
+      required:
+      - created
+      - skipped_overlapping
+      - slots
+      title: SlotBatchOut
+    SlotIn:
+      properties:
+        start_at:
+          type: string
+          format: date-time
+          title: Start At
+        end_at:
+          type: string
+          format: date-time
+          title: End At
+      additionalProperties: false
+      type: object
+      required:
+      - start_at
+      - end_at
+      title: SlotIn
+    SlotOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        doctor_id:
+          type: string
+          format: uuid
+          title: Doctor Id
+        start_at:
+          type: string
+          format: date-time
+          title: Start At
+        end_at:
+          type: string
+          format: date-time
+          title: End At
+        mode:
+          $ref: '#/components/schemas/ConsultationMode'
+        status:
+          $ref: '#/components/schemas/SlotStatus'
+        version:
+          type: integer
+          title: Version
+      type: object
+      required:
+      - id
+      - doctor_id
+      - start_at
+      - end_at
+      - mode
+      - status
+      - version
+      title: SlotOut
+    SlotStatus:
+      type: string
+      enum:
+      - open
+      - held
+      - booked
+      title: SlotStatus
+    SpecialtyDemand:
+      properties:
+        specialty:
+          type: string
+          title: Specialty
+        doctors:
+          type: integer
+          title: Doctors
+        slots_published:
+          type: integer
+          title: Slots Published
+        slots_booked:
+          type: integer
+          title: Slots Booked
+        revenue_paise:
+          type: integer
+          title: Revenue Paise
+        utilization:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Utilization
+      type: object
+      required:
+      - specialty
+      - doctors
+      - slots_published
+      - slots_booked
+      - revenue_paise
+      - utilization
+      title: SpecialtyDemand
+    TokenResponse:
+      properties:
+        access_token:
+          type: string
+          title: Access Token
+        refresh_token:
+          type: string
+          title: Refresh Token
+        token_type:
+          type: string
+          const: bearer
+          title: Token Type
+          default: bearer
+        expires_in:
+          type: integer
+          title: Expires In
+      type: object
+      required:
+      - access_token
+      - refresh_token
+      - expires_in
+      title: TokenResponse
+    UserOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        email:
+          type: string
+          title: Email
+        role:
+          $ref: '#/components/schemas/UserRole'
+        status:
+          $ref: '#/components/schemas/UserStatus'
+        mfa_enabled:
+          type: boolean
+          title: Mfa Enabled
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - email
+      - role
+      - status
+      - mfa_enabled
+      - created_at
+      title: UserOut
+    UserPage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/UserOut'
+          type: array
+          title: Items
+        next_cursor:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Next Cursor
+      type: object
+      required:
+      - items
+      - next_cursor
+      title: UserPage
+    UserRole:
+      type: string
+      enum:
+      - patient
+      - doctor
+      - admin
+      - support
+      title: UserRole
+    UserStatus:
+      type: string
+      enum:
+      - active
+      - disabled
+      title: UserStatus
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    VerificationDecision:
+      properties:
+        decision:
+          type: string
+          enum:
+          - approve
+          - reject
+          title: Decision
+        reason:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Reason
+      additionalProperties: false
+      type: object
+      required:
+      - decision
+      title: VerificationDecision
+    VerificationStatus:
+      type: string
+      enum:
+      - pending
+      - verified
+      - rejected
+      title: VerificationStatus
+  securitySchemes:
+    HTTPBearer:
+      type: http
+      scheme: bearer
+servers:
+- url: https://api.amrutam.global
+- url: http://localhost:8000

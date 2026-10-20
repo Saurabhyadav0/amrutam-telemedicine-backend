@@ -1,0 +1,112 @@
+name: amrutam
+
+x-api-env: &api-env
+  env_file: .env
+  environment:
+    DATABASE_URL: postgresql+asyncpg://amrutam:amrutam@postgres:5432/amrutam
+    REDIS_URL: redis://redis:6379/0
+    OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+    # Sample 10% of new traces (always keep a trace whose parent was sampled).
+    OTEL_TRACES_SAMPLER: parentbased_traceidratio
+    OTEL_TRACES_SAMPLER_ARG: "0.1"
+    # Only the gateway can reach the API containers on this private network.
+    FORWARDED_ALLOW_IPS: "*"
+    # Fixed-size pools: overflow connections are closed on release, so bursts would pay the
+    # TCP+auth connect cost again. 4 replicas x 15 + worker stays under max_connections=100.
+    DB_POOL_SIZE: "15"
+    DB_MAX_OVERFLOW: "0"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: amrutam
+      POSTGRES_PASSWORD: amrutam
+      POSTGRES_DB: amrutam
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U amrutam -d amrutam"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
+  migrate:
+    build: .
+    <<: *api-env
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  api:
+    build: .
+    <<: *api-env
+    deploy:
+      replicas: ${API_REPLICAS:-4}
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+
+  gateway:
+    image: nginx:1.27-alpine
+    volumes: [./infra/docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro]
+    ports: ["8000:8000"]
+    depends_on: [api]
+
+  worker:
+    build: .
+    <<: *api-env
+    command: ["arq", "app.worker.main.WorkerSettings"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9100/metrics', timeout=2)"]
+      interval: 15s
+      retries: 3
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.62.0
+    ports: ["16686:16686", "4318:4318"]
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    volumes:
+      - ./infra/docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infra/docker/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+    ports: ["9090:9090"]
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    volumes:
+      - ./infra/docker/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/docker/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports: ["3300:3000"]
+    depends_on: [prometheus, jaeger, loki]
+
+  loki:
+    image: grafana/loki:3.2.1
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    ports: ["3100:3100"]
+
+  alloy:
+    image: grafana/alloy:v1.4.3
+    command: ["run", "/etc/alloy/config.alloy", "--storage.path=/var/lib/alloy/data"]
+    volumes:
+      - ./infra/docker/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on: [loki]
+
+volumes:
+  pgdata:

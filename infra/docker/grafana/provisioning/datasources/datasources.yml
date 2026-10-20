@@ -1,0 +1,27 @@
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus
+    url: http://prometheus:9090
+    isDefault: true
+  - name: Jaeger
+    type: jaeger
+    uid: jaeger
+    url: http://jaeger:16686
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: loki
+        customQuery: true
+        query: '{service=~"api|worker"} |= "$${__trace.traceId}"'
+  - name: Loki
+    type: loki
+    uid: loki
+    url: http://loki:3100
+    jsonData:
+      derivedFields:
+        # Click a trace_id in any log line to open the trace in Jaeger.
+        - name: trace_id
+          matcherRegex: '"trace_id": "(\w+)"'
+          url: '$${__value.raw}'
+          datasourceUid: jaeger

@@ -1,0 +1,10 @@
+environment            = "production"
+domain_certificate_arn = "arn:aws:acm:ap-south-1:000000000000:certificate/REPLACE_ME"
+image_tag              = "REPLACE_WITH_GIT_SHA"
+api_desired_count      = 4
+api_max_count          = 20
+worker_desired_count   = 2
+db_instance_class      = "db.r6g.xlarge"
+db_read_replicas       = 1
+redis_node_type        = "cache.r6g.large"
+backup_retention_days  = 30
