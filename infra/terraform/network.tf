@@ -1,10 +1,7 @@
-data "aws_availability_zones" "available" {
-  state = "available"
-}
-
 locals {
   name = "amrutam-${var.environment}"
-  azs  = slice(data.aws_availability_zones.available.names, 0, 3)
+  # Explicit AZs: the subnet layout must not shift if AWS adds a zone to the region.
+  azs = var.availability_zones
 }
 
 # Three tiers across three AZs: public (ALB, NAT), private (ECS tasks), database (RDS, Redis).
@@ -67,10 +64,24 @@ resource "aws_security_group" "app" {
   vpc_id      = module.vpc.vpc_id
 
   egress {
-    description = "Postgres, Redis, AWS APIs and the payment gateway (via NAT)"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    description = "Postgres inside the VPC"
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+  }
+  egress {
+    description = "Redis inside the VPC"
+    from_port   = 6379
+    to_port     = 6379
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+  }
+  egress {
+    description = "HTTPS only: AWS APIs (ECR, Secrets Manager, KMS, logs) and the payment gateway via NAT"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 }

@@ -13,6 +13,11 @@ variable "dr_region" {
   default = "ap-south-2" # Hyderabad
 }
 
+variable "availability_zones" {
+  type    = list(string)
+  default = ["ap-south-1a", "ap-south-1b", "ap-south-1c"]
+}
+
 variable "vpc_cidr" {
   type    = string
   default = "10.40.0.0/16"

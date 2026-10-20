@@ -63,10 +63,8 @@ jobs:
         run: uv run bandit -q -r app
       - name: Dependency vulnerabilities (pip-audit)
         run: uv export --frozen --no-dev --no-hashes -o requirements.txt && uv run pip-audit -r requirements.txt
-      - name: Secret scan (gitleaks)
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Secret scan over full git history (gitleaks)
+        run: docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.24.3 git /repo --redact --no-banner
 
   terraform:
     runs-on: ubuntu-latest

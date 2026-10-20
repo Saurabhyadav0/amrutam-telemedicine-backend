@@ -1,6 +1,7 @@
 # ---- Application Load Balancer (TLS 1.2+/1.3) --------------------------------------------
 
 resource "aws_lb" "main" {
+  #checkov:skip=CKV2_AWS_76:KnownBadInputsRuleSet (incl. Log4JRCE) is attached via aws_wafv2_web_acl.api's dynamic rule block, which Checkov can't evaluate
   name                       = local.name
   load_balancer_type         = "application"
   internal                   = false
