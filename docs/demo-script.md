@@ -14,7 +14,7 @@ ready.
 | **2:40–3:20** | Doctor `start` → prescription with **Agnitundi Vati** → 422 → valid prescription → `GET /prescriptions/signing-key` | "TPG 2020 rules are enforced: List B drugs can't be prescribed online, List A only after video. Prescriptions are Ed25519-signed and immutable; a pharmacy can verify them offline." |
 | **3:20–4:00** | `GET /v1/admin/audit-logs` → `/verify` → `GET /v1/admin/analytics/overview` → `GET /v1/users/me/data-export` | "Every action lands in a hash-chained, append-only, partitioned audit log. Analytics come from rollups the worker maintains. DPDP rights: full export, and erasure that keeps legally required medical records." |
 | **4:00–4:40** | Grafana *API - SLOs & traffic* during `make load`; click a slow request's trace in Jaeger; Loki error panel; Prometheus `/alerts` | "SLO dashboards, error-budget burn-rate alerts, logs linked to traces. Load testing found two real bottlenecks, a single-core process and a per-row subquery in search, both fixed; search went from 69 ms to 0.4 ms." |
-| **4:40–5:00** | GitHub Actions run (lint, tests, Bandit/CodeQL/pip-audit/gitleaks, Checkov, Trivy) + `docs/security.md` | "110 tests against real Postgres, 94% coverage, security scanning on code, dependencies, image and Terraform; threat model and security checklist in the docs. Thanks!" |
+| **4:40–5:00** | GitHub Actions run (lint, tests, Bandit/CodeQL/pip-audit/gitleaks, Checkov, Trivy) + `docs/security.md` | "137 tests against real Postgres, 94% coverage, security scanning on code, dependencies, image and Terraform; threat model and security checklist in the docs. Thanks!" |
 
 **Tips:** record at 1080p, zoom the browser to 125%, hide bookmarks, and keep each request
 pre-filled in Swagger so the run stays under five minutes.
