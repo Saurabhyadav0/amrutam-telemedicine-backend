@@ -40,7 +40,7 @@ jobs:
       IMAGE_TAG: ${{ inputs.image_tag || github.event.workflow_run.head_sha || github.sha }}
       CLUSTER: amrutam-${{ inputs.environment || 'staging' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ env.IMAGE_TAG }}
 
